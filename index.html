@@ -558,9 +558,22 @@
     const count = fingers.size;
     const radius = Math.min(window.innerWidth, window.innerHeight) * 0.28;
 
-    // Pick the winner
+    // Pick the winner — exclude the finger closest to bottom-center
     const fingerIds = Array.from(fingers.keys());
-    const winnerId = fingerIds[Math.floor(Math.random() * fingerIds.length)];
+    const bottomCenterX = window.innerWidth / 2;
+    const bottomCenterY = window.innerHeight;
+    let closestToBottomId = fingerIds[0];
+    let closestDist = Infinity;
+    fingerIds.forEach(id => {
+      const f = fingers.get(id);
+      const dist = Math.hypot(f.x - bottomCenterX, f.y - bottomCenterY);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestToBottomId = id;
+      }
+    });
+    const eligible = fingerIds.filter(id => id !== closestToBottomId);
+    const winnerId = eligible[Math.floor(Math.random() * eligible.length)];
 
     // Create spin glasses in center
     const spinGlasses = [];
