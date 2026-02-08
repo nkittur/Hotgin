@@ -255,9 +255,159 @@
     z-index: 5;
     pointer-events: none;
   }
+
+  /* --- Settings gear button --- */
+  #settings-btn {
+    position: fixed;
+    top: 12px; left: 12px;
+    width: 40px; height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 30;
+    padding: 6px;
+    -webkit-tap-highlight-color: transparent;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+  #settings-btn:active { opacity: 0.8; }
+  #settings-btn svg { width: 100%; height: 100%; }
+
+  /* --- Settings overlay --- */
+  #settings-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,10,20,0.95);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #settings-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #settings-panel {
+    width: 90%;
+    max-width: 360px;
+  }
+  #settings-panel h2 {
+    color: #e0e0e0;
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .setting-label {
+    color: #ccc;
+    font-size: 0.95rem;
+    flex: 1;
+    padding-right: 16px;
+  }
+  .setting-label .setting-desc {
+    display: block;
+    color: rgba(255,255,255,0.35);
+    font-size: 0.75rem;
+    margin-top: 4px;
+  }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 50px; height: 28px;
+    flex-shrink: 0;
+  }
+  .toggle input {
+    opacity: 0;
+    width: 0; height: 0;
+    position: absolute;
+  }
+  .toggle-track {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #333;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+  .toggle input:checked + .toggle-track {
+    background: #ff6b35;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s;
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb {
+    transform: translateX(22px);
+  }
+
+  #settings-close {
+    margin-top: 2rem;
+    padding: 12px 40px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #ccc;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 50px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #settings-close:active {
+    background: rgba(255,255,255,0.15);
+  }
 </style>
 </head>
 <body>
+<button id="settings-btn" aria-label="Settings">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#aaa" stroke-width="1.8"/>
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="#aaa" stroke-width="1.8"/>
+  </svg>
+</button>
+
+<div id="settings-overlay">
+  <div id="settings-panel">
+    <h2>Settings</h2>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        Bottom-center immunity
+        <span class="setting-desc">Player closest to bottom-center of screen never gets hot gin</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="setting-bottom-immunity" checked>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div style="text-align:center">
+      <button id="settings-close">Done</button>
+    </div>
+  </div>
+</div>
+
 <div id="game">
   <div id="prompt">
     <h1>Hot Gin</h1>
@@ -308,6 +458,39 @@
   let countdownTimer = null;
   let countdownValue = 3;
   const COUNTDOWN_SECONDS = 3;
+
+  // ---- Settings ----
+  const settings = {
+    bottomImmunity: localStorage.getItem('hotgin_bottomImmunity') !== 'false'
+  };
+
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsClose = document.getElementById('settings-close');
+  const bottomImmunityToggle = document.getElementById('setting-bottom-immunity');
+
+  bottomImmunityToggle.checked = settings.bottomImmunity;
+
+  settingsBtn.addEventListener('click', () => {
+    settingsOverlay.classList.add('open');
+  });
+  settingsBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    settingsOverlay.classList.add('open');
+  });
+  settingsClose.addEventListener('click', () => {
+    settingsOverlay.classList.remove('open');
+  });
+  settingsClose.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    settingsOverlay.classList.remove('open');
+  });
+  bottomImmunityToggle.addEventListener('change', () => {
+    settings.bottomImmunity = bottomImmunityToggle.checked;
+    localStorage.setItem('hotgin_bottomImmunity', settings.bottomImmunity);
+  });
 
   // ---- DOM ----
   const game = document.getElementById('game');
@@ -558,21 +741,27 @@
     const count = fingers.size;
     const radius = Math.min(window.innerWidth, window.innerHeight) * 0.28;
 
-    // Pick the winner — exclude the finger closest to bottom-center
+    // Pick the winner
     const fingerIds = Array.from(fingers.keys());
-    const bottomCenterX = window.innerWidth / 2;
-    const bottomCenterY = window.innerHeight;
-    let closestToBottomId = fingerIds[0];
-    let closestDist = Infinity;
-    fingerIds.forEach(id => {
-      const f = fingers.get(id);
-      const dist = Math.hypot(f.x - bottomCenterX, f.y - bottomCenterY);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestToBottomId = id;
-      }
-    });
-    const eligible = fingerIds.filter(id => id !== closestToBottomId);
+    let eligible = fingerIds;
+
+    if (settings.bottomImmunity) {
+      // Exclude the finger closest to bottom-center
+      const bottomCenterX = window.innerWidth / 2;
+      const bottomCenterY = window.innerHeight;
+      let closestToBottomId = fingerIds[0];
+      let closestDist = Infinity;
+      fingerIds.forEach(id => {
+        const f = fingers.get(id);
+        const dist = Math.hypot(f.x - bottomCenterX, f.y - bottomCenterY);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestToBottomId = id;
+        }
+      });
+      eligible = fingerIds.filter(id => id !== closestToBottomId);
+    }
+
     const winnerId = eligible[Math.floor(Math.random() * eligible.length)];
 
     // Create spin glasses in center
