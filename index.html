@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>HOT GIN</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    background: #1a1a2e;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #game {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+
+  /* --- Prompt text --- */
+  #prompt {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #e0e0e0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    z-index: 5;
+  }
+  #prompt h1 {
+    font-size: 2.2rem;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  #prompt p {
+    font-size: 1rem;
+    opacity: 0.6;
+  }
+
+  /* --- Countdown overlay --- */
+  #countdown {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6rem;
+    font-weight: 900;
+    color: #ff6b35;
+    text-shadow: 0 0 40px rgba(255,107,53,0.6);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 20;
+    transition: opacity 0.2s;
+  }
+
+  /* --- Shot glass (at finger) --- */
+  .shot-glass {
+    position: absolute;
+    width: 60px; height: 80px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.3s;
+  }
+  .shot-glass .glass-body {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+  .shot-glass .glass-body svg {
+    width: 100%; height: 100%;
+  }
+
+  /* --- Finger dot (pulse under finger) --- */
+  .finger-dot {
+    position: absolute;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.3; }
+  }
+
+  /* --- Microwave --- */
+  #microwave {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 280px; height: 220px;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 15;
+    pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  #microwave.show {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  #microwave.hide {
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.4s ease-in;
+  }
+  #microwave svg {
+    width: 100%; height: 100%;
+  }
+
+  /* Microwave glow while "cooking" */
+  #microwave.cooking .mw-window {
+    animation: mw-glow 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes mw-glow {
+    from { fill: #2a2a1a; }
+    to { fill: #5a4a10; }
+  }
+
+  /* --- Spin container --- */
+  #spin-container {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    z-index: 12;
+    pointer-events: none;
+  }
+
+  .spin-glass {
+    position: absolute;
+    width: 60px; height: 80px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* --- Reveal --- */
+  .shot-glass.winner .glass-body svg .liquid {
+    transition: fill 0.5s;
+  }
+
+  #hotgin-reveal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  #hotgin-reveal.show {
+    opacity: 1;
+  }
+  #hotgin-reveal h1 {
+    font-size: 5rem;
+    font-weight: 900;
+    color: #ff3e00;
+    text-shadow:
+      0 0 20px rgba(255,62,0,0.8),
+      0 0 60px rgba(255,62,0,0.5),
+      0 0 100px rgba(255,62,0,0.3);
+    letter-spacing: 0.2em;
+    animation: hotgin-pulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes hotgin-pulse {
+    from { transform: scale(1); text-shadow: 0 0 20px rgba(255,62,0,0.8), 0 0 60px rgba(255,62,0,0.5); }
+    to { transform: scale(1.08); text-shadow: 0 0 40px rgba(255,62,0,1), 0 0 80px rgba(255,62,0,0.7), 0 0 120px rgba(255,62,0,0.4); }
+  }
+  #hotgin-reveal .subtitle {
+    font-size: 1.2rem;
+    color: #ffaa80;
+    margin-top: 0.5rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  /* Winner arrow / indicator */
+  .winner-indicator {
+    position: absolute;
+    width: 30px; height: 30px;
+    transform: translate(-50%, -120%);
+    pointer-events: none;
+    z-index: 50;
+    animation: bounce-arrow 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes bounce-arrow {
+    from { transform: translate(-50%, -120%); }
+    to { transform: translate(-50%, -140%); }
+  }
+
+  /* Flame particles */
+  .flame {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ff6b35;
+    pointer-events: none;
+    z-index: 99;
+    animation: flame-rise 1s ease-out forwards;
+  }
+  @keyframes flame-rise {
+    0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -80px) scale(0); }
+  }
+
+  /* Reset button */
+  #reset-btn {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 40px;
+    background: rgba(255,62,0,0.2);
+    border: 2px solid #ff3e00;
+    color: #ff8a65;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-radius: 50px;
+    cursor: pointer;
+    z-index: 200;
+    display: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #reset-btn:active {
+    background: rgba(255,62,0,0.4);
+  }
+
+  /* Timer bar */
+  #timer-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff6b35, #ff3e00);
+    z-index: 25;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* Player count */
+  #player-count {
+    position: fixed;
+    top: 16px; right: 16px;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.9rem;
+    z-index: 5;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="prompt">
+    <h1>Hot Gin</h1>
+    <p>Everyone place a finger on the screen</p>
+  </div>
+  <div id="countdown"></div>
+  <div id="microwave">
+    <svg viewBox="0 0 280 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Microwave body -->
+      <rect x="10" y="20" width="260" height="180" rx="12" fill="#3a3a4a" stroke="#555" stroke-width="3"/>
+      <!-- Window -->
+      <rect class="mw-window" x="25" y="35" width="165" height="150" rx="6" fill="#2a2a1a" stroke="#444" stroke-width="2"/>
+      <!-- Window grid lines -->
+      <line x1="25" y1="72" x2="190" y2="72" stroke="#444" stroke-width="0.5" opacity="0.4"/>
+      <line x1="25" y1="110" x2="190" y2="110" stroke="#444" stroke-width="0.5" opacity="0.4"/>
+      <line x1="25" y1="148" x2="190" y2="148" stroke="#444" stroke-width="0.5" opacity="0.4"/>
+      <line x1="80" y1="35" x2="80" y2="185" stroke="#444" stroke-width="0.5" opacity="0.4"/>
+      <line x1="135" y1="35" x2="135" y2="185" stroke="#444" stroke-width="0.5" opacity="0.4"/>
+      <!-- Control panel -->
+      <rect x="205" y="35" width="50" height="150" rx="4" fill="#2e2e3e"/>
+      <!-- Timer display -->
+      <rect x="212" y="45" width="36" height="20" rx="3" fill="#1a1a1a"/>
+      <text x="230" y="60" text-anchor="middle" fill="#33ff33" font-family="monospace" font-size="12" id="mw-timer">0:00</text>
+      <!-- Buttons -->
+      <circle cx="230" cy="85" r="10" fill="#444" stroke="#555" stroke-width="1.5"/>
+      <circle cx="230" cy="115" r="10" fill="#444" stroke="#555" stroke-width="1.5"/>
+      <circle cx="230" cy="145" r="8" fill="#cc3333" stroke="#ff4444" stroke-width="1.5"/>
+      <!-- Handle -->
+      <rect x="197" y="90" width="6" height="40" rx="3" fill="#555"/>
+    </svg>
+  </div>
+  <div id="spin-container"></div>
+  <div id="hotgin-reveal">
+    <h1>HOT GIN</h1>
+    <div class="subtitle">drink up</div>
+  </div>
+  <div id="timer-bar"></div>
+  <div id="player-count"></div>
+  <button id="reset-btn">Play Again</button>
+</div>
+
+<script>
+(() => {
+  // ---- State ----
+  const PHASES = { WAITING: 0, COUNTDOWN: 1, MICROWAVE: 2, SPIN: 3, REVEAL: 4 };
+  let phase = PHASES.WAITING;
+  let fingers = new Map();       // touchId -> { x, y, el, dot }
+  let countdownTimer = null;
+  let countdownValue = 3;
+  const COUNTDOWN_SECONDS = 3;
+
+  // ---- DOM ----
+  const game = document.getElementById('game');
+  const prompt = document.getElementById('prompt');
+  const countdownEl = document.getElementById('countdown');
+  const microwave = document.getElementById('microwave');
+  const spinContainer = document.getElementById('spin-container');
+  const hotginReveal = document.getElementById('hotgin-reveal');
+  const timerBar = document.getElementById('timer-bar');
+  const playerCount = document.getElementById('player-count');
+  const resetBtn = document.getElementById('reset-btn');
+  const mwTimer = document.getElementById('mw-timer');
+
+  // ---- Shot glass SVG factory ----
+  function createGlassSVG(isWater = true) {
+    const color = isWater ? '#88ccff' : '#ff8833';
+    const colorDark = isWater ? '#5599cc' : '#cc5500';
+    return `<svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Glass body -->
+      <path d="M12 8 L8 60 Q8 70 20 72 L40 72 Q52 70 52 60 L48 8 Z" fill="rgba(200,220,255,0.15)" stroke="rgba(200,220,255,0.5)" stroke-width="1.5"/>
+      <!-- Liquid -->
+      <path class="liquid" d="M14 28 L10 58 Q10 68 22 70 L38 70 Q50 68 50 58 L46 28 Z" fill="${color}" opacity="0.7"/>
+      <!-- Liquid surface shine -->
+      <ellipse cx="30" cy="28" rx="16" ry="3" fill="${colorDark}" opacity="0.3"/>
+      <!-- Glass shine -->
+      <path d="M16 12 L14 55 Q14 58 16 58" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none"/>
+      <!-- Rim -->
+      <ellipse cx="30" cy="8" rx="18" ry="4" fill="none" stroke="rgba(200,220,255,0.6)" stroke-width="1.5"/>
+      <!-- Rim highlight -->
+      <path d="M14 8 Q30 4 46 8" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none"/>
+    </svg>`;
+  }
+
+  function createHotGinGlassSVG() {
+    return `<svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Glass body -->
+      <path d="M12 8 L8 60 Q8 70 20 72 L40 72 Q52 70 52 60 L48 8 Z" fill="rgba(255,180,100,0.15)" stroke="rgba(255,180,100,0.5)" stroke-width="1.5"/>
+      <!-- Liquid (hot gin - amber) -->
+      <path class="liquid" d="M14 28 L10 58 Q10 68 22 70 L38 70 Q50 68 50 58 L46 28 Z" fill="#ff6b20" opacity="0.85"/>
+      <!-- Steam lines -->
+      <path d="M22 18 Q24 10 22 2" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none">
+        <animate attributeName="d" values="M22 18 Q24 10 22 2;M22 18 Q20 10 22 2;M22 18 Q24 10 22 2" dur="1.5s" repeatCount="indefinite"/>
+      </path>
+      <path d="M30 16 Q32 8 30 0" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none">
+        <animate attributeName="d" values="M30 16 Q32 8 30 0;M30 16 Q28 8 30 0;M30 16 Q32 8 30 0" dur="1.8s" repeatCount="indefinite"/>
+      </path>
+      <path d="M38 18 Q40 10 38 2" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" fill="none">
+        <animate attributeName="d" values="M38 18 Q40 10 38 2;M38 18 Q36 10 38 2;M38 18 Q40 10 38 2" dur="1.3s" repeatCount="indefinite"/>
+      </path>
+      <!-- Liquid surface glow -->
+      <ellipse cx="30" cy="28" rx="16" ry="3" fill="#ff4400" opacity="0.5"/>
+      <!-- Glass shine -->
+      <path d="M16 12 L14 55 Q14 58 16 58" stroke="rgba(255,200,150,0.3)" stroke-width="1.5" fill="none"/>
+      <!-- Rim -->
+      <ellipse cx="30" cy="8" rx="18" ry="4" fill="none" stroke="rgba(255,180,100,0.6)" stroke-width="1.5"/>
+      <!-- Glow effect -->
+      <ellipse cx="30" cy="50" rx="20" ry="15" fill="#ff4400" opacity="0.15">
+        <animate attributeName="opacity" values="0.15;0.3;0.15" dur="1s" repeatCount="indefinite"/>
+      </ellipse>
+    </svg>`;
+  }
+
+  function createArrowSVG() {
+    return `<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="15,25 5,8 25,8" fill="#ff3e00" stroke="#ff6b35" stroke-width="1.5"/>
+    </svg>`;
+  }
+
+  // ---- Add / remove fingers ----
+  function addFinger(id, x, y) {
+    if (phase !== PHASES.WAITING && phase !== PHASES.COUNTDOWN) return;
+
+    // Create finger dot
+    const dot = document.createElement('div');
+    dot.className = 'finger-dot';
+    dot.style.left = x + 'px';
+    dot.style.top = y + 'px';
+    game.appendChild(dot);
+
+    // Create shot glass
+    const glass = document.createElement('div');
+    glass.className = 'shot-glass';
+    glass.style.left = x + 'px';
+    glass.style.top = (y - 60) + 'px';
+    glass.innerHTML = `<div class="glass-body">${createGlassSVG(true)}</div>`;
+    glass.style.transform = 'translate(-50%, -50%) scale(0)';
+    game.appendChild(glass);
+
+    // Animate in
+    requestAnimationFrame(() => {
+      glass.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      glass.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+
+    fingers.set(id, { x, y, el: glass, dot });
+
+    // Update UI
+    if (fingers.size === 1) {
+      prompt.style.opacity = '0';
+    }
+    playerCount.textContent = fingers.size + (fingers.size === 1 ? ' player' : ' players');
+
+    // Reset / start countdown
+    startCountdown();
+  }
+
+  function removeFinger(id) {
+    if (phase !== PHASES.WAITING && phase !== PHASES.COUNTDOWN) return;
+    const f = fingers.get(id);
+    if (!f) return;
+    f.el.remove();
+    f.dot.remove();
+    fingers.delete(id);
+
+    if (fingers.size === 0) {
+      cancelCountdown();
+      prompt.style.opacity = '1';
+      playerCount.textContent = '';
+    } else {
+      playerCount.textContent = fingers.size + (fingers.size === 1 ? ' player' : ' players');
+      startCountdown();
+    }
+  }
+
+  // ---- Countdown ----
+  function startCountdown() {
+    cancelCountdown();
+    if (fingers.size < 2) return; // Need at least 2 players
+    phase = PHASES.COUNTDOWN;
+    countdownValue = COUNTDOWN_SECONDS;
+    timerBar.style.transition = 'none';
+    timerBar.style.width = '0%';
+
+    let elapsed = 0;
+    const interval = 100;
+    const total = COUNTDOWN_SECONDS * 1000;
+
+    countdownTimer = setInterval(() => {
+      elapsed += interval;
+      const pct = (elapsed / total) * 100;
+      timerBar.style.transition = 'width 0.1s linear';
+      timerBar.style.width = pct + '%';
+
+      const remaining = Math.ceil((total - elapsed) / 1000);
+      if (remaining !== countdownValue && remaining >= 1) {
+        countdownValue = remaining;
+        showCountdownNumber(remaining);
+      }
+
+      if (elapsed >= total) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        timerBar.style.width = '100%';
+        countdownEl.style.opacity = '0';
+        beginMicrowave();
+      }
+    }, interval);
+  }
+
+  function cancelCountdown() {
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    phase = PHASES.WAITING;
+    countdownEl.style.opacity = '0';
+    timerBar.style.width = '0%';
+  }
+
+  function showCountdownNumber(n) {
+    countdownEl.textContent = n;
+    countdownEl.style.opacity = '1';
+    countdownEl.style.transition = 'none';
+    countdownEl.style.transform = 'translate(-50%, -50%) scale(1.5)';
+    requestAnimationFrame(() => {
+      countdownEl.style.transition = 'transform 0.4s ease-out, opacity 0.3s';
+      countdownEl.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+  }
+
+  // ---- Microwave phase ----
+  function beginMicrowave() {
+    phase = PHASES.MICROWAVE;
+    playerCount.textContent = '';
+    timerBar.style.width = '0%';
+
+    // Hide finger dots
+    fingers.forEach(f => { f.dot.style.display = 'none'; });
+
+    // Get center of screen
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+
+    // Animate glasses to center (into microwave)
+    fingers.forEach(f => {
+      f.el.style.transition = 'all 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+      f.el.style.left = cx + 'px';
+      f.el.style.top = cy + 'px';
+      f.el.style.transform = 'translate(-50%, -50%) scale(0.5)';
+      f.el.style.opacity = '0';
+    });
+
+    // Show microwave after glasses arrive
+    setTimeout(() => {
+      microwave.classList.add('show');
+    }, 400);
+
+    // Start cooking animation
+    setTimeout(() => {
+      microwave.classList.add('cooking');
+      animateMicrowaveTimer();
+    }, 900);
+
+    // Cooking done
+    setTimeout(() => {
+      microwave.classList.remove('cooking');
+      microwave.classList.remove('show');
+      microwave.classList.add('hide');
+      mwTimer.textContent = '0:00';
+
+      setTimeout(() => {
+        microwave.classList.remove('hide');
+        beginSpin();
+      }, 500);
+    }, 3800);
+  }
+
+  function animateMicrowaveTimer() {
+    let t = 0;
+    const iv = setInterval(() => {
+      t += 100;
+      const secs = Math.floor(t / 1000);
+      const ms = Math.floor((t % 1000) / 10);
+      mwTimer.textContent = secs + ':' + String(ms).padStart(2, '0');
+      if (t >= 2800) clearInterval(iv);
+    }, 100);
+  }
+
+  // ---- Spin phase ----
+  function beginSpin() {
+    phase = PHASES.SPIN;
+
+    // Remove old glass elements
+    fingers.forEach(f => f.el.remove());
+
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const count = fingers.size;
+    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.28;
+
+    // Pick the winner
+    const fingerIds = Array.from(fingers.keys());
+    const winnerId = fingerIds[Math.floor(Math.random() * fingerIds.length)];
+
+    // Create spin glasses in center
+    const spinGlasses = [];
+    let i = 0;
+    fingers.forEach((f, id) => {
+      const glass = document.createElement('div');
+      glass.className = 'spin-glass';
+      glass.innerHTML = `<div class="glass-body">${createGlassSVG(true)}</div>`;
+      glass.style.left = '0px';
+      glass.style.top = '0px';
+      glass.style.transform = 'translate(-50%, -50%) scale(0)';
+      spinContainer.appendChild(glass);
+      spinGlasses.push({ el: glass, id, fingerData: f, index: i });
+      i++;
+    });
+
+    // Pop in
+    requestAnimationFrame(() => {
+      spinGlasses.forEach(g => {
+        g.el.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        g.el.style.transform = 'translate(-50%, -50%) scale(1)';
+      });
+    });
+
+    // Spin animation using rotation
+    const totalSpinTime = 3000;
+    const totalRotations = 3 + Math.random() * 2; // 3-5 full rotations
+    let startTime = null;
+
+    // We need to figure out final angle offsets so each glass ends up near its finger
+    // Calculate target angles: each glass i should end at the angle of its finger
+    const fingerPositions = [];
+    fingers.forEach((f, id) => {
+      const angle = Math.atan2(f.y - cy, f.x - cx);
+      fingerPositions.push({ id, angle, x: f.x, y: f.y });
+    });
+
+    // Sort glasses by their target finger angle to minimize crossing
+    // Assign each glass to go to its owner's finger
+    const assignments = spinGlasses.map((g, idx) => {
+      const fp = fingerPositions.find(fp => fp.id === g.id);
+      return { glass: g, targetAngle: fp.angle, targetX: fp.x, targetY: fp.y };
+    });
+
+    function spinFrame(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / totalSpinTime, 1);
+
+      // Ease out (decelerate)
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentRotation = eased * totalRotations * Math.PI * 2;
+
+      assignments.forEach((a, idx) => {
+        const baseAngle = (idx / count) * Math.PI * 2;
+        const angle = baseAngle + currentRotation;
+
+        if (progress < 0.85) {
+          // Spinning in circle
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          a.glass.el.style.transition = 'none';
+          a.glass.el.style.left = x + 'px';
+          a.glass.el.style.top = y + 'px';
+        } else {
+          // Lerp to final positions
+          const spinX = Math.cos(angle) * radius;
+          const spinY = Math.sin(angle) * radius;
+          const finalX = a.targetX - cx;
+          const finalY = (a.targetY - 60) - cy;
+          const lerpT = (progress - 0.85) / 0.15;
+          const easeT = lerpT * lerpT * (3 - 2 * lerpT); // smoothstep
+          const x = spinX + (finalX - spinX) * easeT;
+          const y = spinY + (finalY - spinY) * easeT;
+          a.glass.el.style.transition = 'none';
+          a.glass.el.style.left = x + 'px';
+          a.glass.el.style.top = y + 'px';
+        }
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(spinFrame);
+      } else {
+        // Spin done -> reveal
+        setTimeout(() => beginReveal(assignments, winnerId, cx, cy), 600);
+      }
+    }
+
+    setTimeout(() => requestAnimationFrame(spinFrame), 500);
+  }
+
+  // ---- Reveal phase ----
+  function beginReveal(assignments, winnerId, cx, cy) {
+    phase = PHASES.REVEAL;
+
+    // Find winner assignment
+    const winnerA = assignments.find(a => a.glass.id === winnerId);
+
+    // Replace winner glass with hot gin
+    winnerA.glass.el.innerHTML = `<div class="glass-body">${createHotGinGlassSVG()}</div>`;
+    winnerA.glass.el.classList.add('winner');
+
+    // Add arrow indicator above winner
+    const arrow = document.createElement('div');
+    arrow.className = 'winner-indicator';
+    arrow.innerHTML = createArrowSVG();
+    arrow.style.left = winnerA.glass.el.style.left;
+    arrow.style.top = (parseFloat(winnerA.glass.el.style.top) - 40) + 'px';
+    spinContainer.appendChild(arrow);
+
+    // Show finger dots again
+    fingers.forEach((f, id) => {
+      f.dot.style.display = '';
+    });
+
+    // Spawn flame particles at winner
+    const winX = parseFloat(winnerA.glass.el.style.left) + cx;
+    const winY = parseFloat(winnerA.glass.el.style.top) + cy;
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => spawnFlame(winX + (Math.random() - 0.5) * 40, winY), i * 80);
+    }
+
+    // Big HOT GIN reveal
+    setTimeout(() => {
+      hotginReveal.classList.add('show');
+      resetBtn.style.display = 'block';
+    }, 800);
+  }
+
+  function spawnFlame(x, y) {
+    const flame = document.createElement('div');
+    flame.className = 'flame';
+    flame.style.left = x + 'px';
+    flame.style.top = y + 'px';
+    flame.style.background = Math.random() > 0.5 ? '#ff6b35' : '#ffaa00';
+    game.appendChild(flame);
+    setTimeout(() => flame.remove(), 1000);
+  }
+
+  // ---- Touch handling ----
+  game.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      addFinger(touch.identifier, touch.clientX, touch.clientY);
+    }
+  }, { passive: false });
+
+  game.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      removeFinger(touch.identifier);
+    }
+  }, { passive: false });
+
+  game.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+      removeFinger(touch.identifier);
+    }
+  }, { passive: false });
+
+  // Prevent scrolling / zooming
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('gesturechange', e => e.preventDefault());
+
+  // ---- Mouse fallback (for desktop testing) ----
+  let mouseDown = false;
+  game.addEventListener('mousedown', (e) => {
+    if (phase === PHASES.REVEAL) return;
+    mouseDown = true;
+    addFinger('mouse', e.clientX, e.clientY);
+  });
+  game.addEventListener('mouseup', (e) => {
+    mouseDown = false;
+    // Don't remove on mouse - keep finger placed (for testing)
+    // On real touch devices, touchend handles removal
+  });
+
+  // ---- Reset ----
+  resetBtn.addEventListener('click', resetGame);
+  resetBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resetGame();
+  });
+
+  function resetGame() {
+    // Clear everything
+    phase = PHASES.WAITING;
+    cancelCountdown();
+
+    fingers.forEach(f => {
+      f.el.remove();
+      f.dot.remove();
+    });
+    fingers.clear();
+
+    spinContainer.innerHTML = '';
+    hotginReveal.classList.remove('show');
+    microwave.classList.remove('show', 'cooking', 'hide');
+    prompt.style.opacity = '1';
+    playerCount.textContent = '';
+    timerBar.style.width = '0%';
+    resetBtn.style.display = 'none';
+    mwTimer.textContent = '0:00';
+
+    // Remove stray flames
+    document.querySelectorAll('.flame').forEach(el => el.remove());
+  }
+})();
+</script>
+</body>
+</html>
